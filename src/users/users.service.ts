@@ -27,4 +27,14 @@ export class UsersService {
 
         return user;
     }
+
+    async getOrderHistory(userId: number) {
+        const user = await this.prisma.user.findUnique({
+            where: { userId },
+            include: { orders: true }
+        });
+        if(!user) throw new BadRequestException('User not found');
+
+        return user.orders;
+    }
 }

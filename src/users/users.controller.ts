@@ -39,4 +39,20 @@ export class UsersController {
             );
         }
     }
+
+    @ApiOperation({ summary: 'Retrieve order history for a user' })
+    @ApiResponse({ status: 200, description: 'Order history retrieved successfully' })
+    @ApiResponse({ status: 404, description: 'User not found' })
+    @Get(':userId/orders')
+    async getOrderHistory(@Param('userId', ParseIntPipe) userId: number) {
+        try {
+            const orders = await this.usersService.getOrderHistory(userId);
+            return { status: HttpStatus.OK, orders };
+        } catch (error) {
+            throw new HttpException(
+                { status: HttpStatus.NOT_FOUND, error: error.message },
+                HttpStatus.NOT_FOUND
+            );
+        }
+    }
 }
