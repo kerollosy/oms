@@ -83,7 +83,7 @@ export class CartService {
       },
     });
     if (!cart) {
-      throw new NotFoundException(`User doesn't have any items in the cart`);
+      throw new NotFoundException(`No items found in cart for user ID ${userId}`);
     }
 
     return cart;
@@ -96,7 +96,7 @@ export class CartService {
     await this.findProductById(productId);
 
     const cart = await this.prisma.cart.findFirst({ where: { userId }, include: { CartItem: true } });
-    if (!cart) throw new NotFoundException("User doesn't have any items in the cart");
+    if (!cart) throw new NotFoundException(`No items found in cart for user ID ${userId}`);
 
     const cartItem = cart.CartItem.find((item) => item.productId === productId);
     if (!cartItem) throw new NotFoundException(`Product with ID ${productId} not found in cart`);
@@ -116,7 +116,7 @@ export class CartService {
     await this.findProductById(productId);
 
     const cart = await this.prisma.cart.findFirst({ where: { userId }, include: { CartItem: true } });
-    if (!cart) throw new NotFoundException("User doesn't have any items in the cart");
+    if (!cart) throw new NotFoundException(`No items found in cart for user ID ${userId}`);
 
     const cartItem = cart.CartItem.find((item) => item.productId === productId);
     if (!cartItem) throw new NotFoundException(`Product with ID ${productId} not found in cart`);
