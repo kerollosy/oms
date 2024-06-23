@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { ApplyCouponDto } from './dto/apply-coupon.dto';
 
 @Injectable()
 export class OrdersService {
@@ -16,10 +17,12 @@ export class OrdersService {
         // Get the user's cart
         const cart = await this.prisma.cart.findFirst({
             where: { userId },
-            include: { CartItem: true }
+            include: { CartItem: { include: { product: true } } },
         });
         if (!cart || cart.CartItem.length === 0) throw new Error(`No items found in cart for user ID ${userId}`);
 
+        const totalPrice = cart.CartItem.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+        
         // Create the order and order items
         const order = await this.prisma.order.create({
             data: {
@@ -28,9 +31,11 @@ export class OrdersService {
                 OrderItem: {
                     create: cart.CartItem.map((item) => ({
                         productId: item.productId,
-                        quantity: item.quantity
+                        quantity: item.quantity,
+                        price: item.product.price
                     }))
-                }
+                },
+                totalPrice
             }
         })
 
@@ -60,5 +65,36 @@ export class OrdersService {
             where: { orderId },
             data: { status: 'COMPLETED' }
         });
+    }
+
+    async applyCoupon(applyCouponDto: ApplyCouponDto) {
+        const { orderId, couponCode } = applyCouponDto;
+
+        const order = await this.prisma.order.findUnique({
+            where: { orderId },
+            include: { OrderItem: { include: { product: true } } },
+        });
+        if (!order) throw new NotFoundException(`Order with ID ${orderId} not found`);
+
+        const discount = this.calculateDiscount(couponCode);
+
+        if (!discount) {
+            throw new BadRequestException(`Invalid coupon code: ${couponCode}`);
+        }
+
+        const discountedPrice = order.totalPrice - discount;
+
+        return await this.prisma.order.update({
+            where: { orderId },
+            data: { totalPrice: discountedPrice },
+        });
+    }
+
+    private calculateDiscount(couponCode: string): number {
+        const validCoupons = {
+            'SLASH': 10,
+        };
+
+        return validCoupons[couponCode] || 0;
     }
 }

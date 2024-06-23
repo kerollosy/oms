@@ -1,6 +1,7 @@
 import { Body, Controller, Get, HttpException, HttpStatus, Param, ParseIntPipe, Post, Put } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { ApplyCouponDto } from './dto/apply-coupon.dto';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 @Controller('api/orders')
@@ -47,6 +48,22 @@ export class OrdersController {
     async updateStatus(@Param('orderId', ParseIntPipe) orderId: number) {
         try {
             const order = await this.ordersService.updateStatus(orderId);
+            return { status: HttpStatus.OK, order };
+        } catch (error) {
+            throw new HttpException(
+                { status: HttpStatus.NOT_FOUND, error: error.message },
+                HttpStatus.NOT_FOUND
+            );
+        }
+    }
+
+    @ApiOperation({ summary: 'Apply a coupon to an order' })
+    @ApiResponse({ status: 200, description: 'Coupon applied successfully' })
+    @ApiResponse({ status: 404, description: 'Order or Coupon not found' })
+    @Post('apply-coupon')
+    async applyCoupon(@Body() applyCouponDto: ApplyCouponDto) {
+        try {
+            const order = await this.ordersService.applyCoupon(applyCouponDto);
             return { status: HttpStatus.OK, order };
         } catch (error) {
             throw new HttpException(
